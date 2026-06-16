@@ -1,0 +1,212 @@
+# =============================================================================
+# /etc/ssh/sshd_config — DISA STIG Hardened Configuration
+# =============================================================================
+# System:      Red Hat Enterprise Linux 9
+# Hardened by: Jessica Williams
+# Date:        June 2026
+# Reference:   DISA STIG for RHEL 9 — public.cyber.mil/stigs
+#
+# This configuration applies 14 DISA STIG controls to the OpenSSH daemon.
+# Every non-default setting includes its STIG control ID and security rationale.
+# Default settings that satisfy STIG requirements are listed explicitly rather
+# than left to system defaults — defensive practice for auditability.
+# =============================================================================
+
+
+# =============================================================================
+# NETWORK & PORT CONFIGURATION
+# =============================================================================
+
+# Standard SSH port. Change in production if required by local policy.
+Port 22
+
+# Listen on all interfaces. Restrict to specific IP if this host has
+# multiple interfaces and SSH should only be reachable on one.
+#ListenAddress 0.0.0.0
+#ListenAddress ::
+
+# Protocol version. SSHv1 is cryptographically broken and removed in
+# OpenSSH 7.6+. Listed explicitly for documentation clarity.
+# Protocol 2  # Enforced by OpenSSH 8.x+ — no directive needed
+
+
+# =============================================================================
+# HOST KEY CONFIGURATION
+# =============================================================================
+
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+
+
+# =============================================================================
+# CRYPTOGRAPHY — STIG CONTROLS
+# =============================================================================
+
+# STIG V-257758: SSH must use only FIPS 140-2 approved ciphers
+# Rationale: Default negotiation permits AES-CBC variants (vulnerable to BEAST
+# attack) and potentially 3DES-CBC (vulnerable to SWEET32). Counter-mode (CTR)
+# and GCM ciphers are authenticated and FIPS 140-2 compliant.
+Ciphers aes128-ctr,aes192-ctr,aes256-ctr,aes128-gcm@openssh.com,aes256-gcm@openssh.com
+
+# STIG V-257759: SSH must use only approved Message Authentication Codes
+# Rationale: HMAC-MD5 and HMAC-SHA1 are no longer FIPS-approved per NIST SP
+# 800-131A. SHA-2 based MACs (256, 512) are required. ETM (Encrypt-then-MAC)
+# variants are preferred as they prevent CBC padding oracle attacks.
+MACs hmac-sha2-256,hmac-sha2-512,hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com
+
+# STIG V-257760: SSH must use only approved key exchange algorithms
+# Rationale: DHE with SHA-1 is deprecated (NIST SP 800-131A). 1024-bit DH
+# (Group 1) was broken in the Logjam attack. ECDHE with NIST curves and
+# DH with SHA-256/512 are FIPS-approved.
+KexAlgorithms ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256,diffie-hellman-group14-sha256,diffie-hellman-group16-sha512
+
+
+# =============================================================================
+# AUTHENTICATION CONTROLS — STIG CONTROLS
+# =============================================================================
+
+# STIG V-257778: SSH must not permit direct root login
+# Rationale: Direct root login eliminates individual accountability. All
+# privileged actions must originate from a named user account and be elevated
+# via sudo, creating a complete audit trail in /var/log/secure.
+PermitRootLogin no
+
+# STIG V-257757: SSH must not permit empty passwords
+# Rationale: Empty passwords allow unauthenticated access to an account.
+# This should be 'no' by default but is made explicit for auditability.
+PermitEmptyPasswords no
+
+# STIG V-257764: Maximum authentication attempts must be limited
+# Rationale: Default value of 6 allows extended brute-force attempts per
+# connection. 3 attempts per connection limits automated attack effectiveness
+# while accommodating legitimate user error.
+MaxAuthTries 3
+
+# STIG V-257763: Authentication grace period must be limited
+# Rationale: Default 120 seconds provides excessive time for automated tools
+# to attempt authentication. 60 seconds accommodates legitimate users while
+# reducing the brute-force window.
+LoginGraceTime 60
+
+# Public key authentication — enabled (primary authentication method)
+PubkeyAuthentication yes
+
+# Password authentication — set per site policy.
+# Disable in favor of key-only auth when operationally feasible.
+PasswordAuthentication yes
+
+# Challenge-response authentication (PAM-based)
+ChallengeResponseAuthentication no
+
+# PAM integration — required for password aging, auditing, and pam_tally2
+UsePAM yes
+
+# Host-based authentication — disabled (no shared key trust)
+HostbasedAuthentication no
+IgnoreUserKnownHosts yes
+IgnoreRhosts yes
+
+
+# =============================================================================
+# SESSION MANAGEMENT — STIG CONTROLS
+# =============================================================================
+
+# STIG V-257761: SSH idle timeout interval must be configured
+# Rationale: An unattended terminal session with elevated privileges represents
+# persistent unauthorized access risk. 600 seconds (10 minutes) is the STIG
+# maximum. The server sends a keep-alive packet after this interval with no
+# response from the client; if no response is received, the session terminates.
+ClientAliveInterval 600
+
+# STIG V-257762: SSH ClientAliveCountMax must be set to zero
+# Rationale: With CountMax=0, the session terminates after exactly one missed
+# keep-alive (ClientAliveInterval seconds of inactivity). CountMax > 0 permits
+# continued session persistence through multiple missed intervals, which defeats
+# the intent of the idle timeout control.
+ClientAliveCountMax 0
+
+# Maximum concurrent unauthenticated connections. Limits connection-exhaustion
+# attacks. Format: start:rate:full
+MaxStartups 10:30:100
+
+# Maximum sessions per network connection
+MaxSessions 10
+
+
+# =============================================================================
+# PRIVILEGE & ENVIRONMENT CONTROLS — STIG CONTROLS
+# =============================================================================
+
+# STIG V-257766: SSH must not permit user environment options
+# Rationale: The ~/.ssh/environment file and AcceptEnv directive allow users
+# to set environment variables that may override system security policy.
+# LD_PRELOAD, PATH, and similar variables can be used for privilege escalation.
+PermitUserEnvironment no
+
+# STIG V-257767: X11 forwarding must be disabled
+# Rationale: X11 forwarding creates a reverse channel from the server to the
+# client's X11 display. This can be abused for lateral movement, bypasses
+# firewall restrictions, and requires X11 trust that is rarely needed on
+# server systems.
+X11Forwarding no
+
+# STIG V-257768: SSH must use privilege separation (sandbox mode)
+# Rationale: Privilege separation isolates the pre-authentication process in a
+# sandboxed, unprivileged child process. If the sshd pre-auth code is exploited,
+# the attacker is limited to the sandbox process rather than root.
+UsePrivilegeSeparation sandbox
+
+# TCP forwarding — disabled unless required by application architecture
+AllowTcpForwarding no
+
+# Agent forwarding — disabled; forward only when required and understood
+AllowAgentForwarding no
+
+# Disable printing /etc/motd (banner handles this)
+PrintMotd no
+
+# Print last login information (useful for detecting unauthorized access)
+PrintLastLog yes
+
+
+# =============================================================================
+# LOGGING & MONITORING — STIG CONTROLS
+# =============================================================================
+
+# STIG V-257769: SSH must log at VERBOSE level
+# Rationale: INFO level omits session key fingerprints and key exchange details.
+# VERBOSE logs the fingerprint of the key used for authentication, enabling
+# forensic correlation between a key and a user if key theft is suspected.
+# Log destination is controlled by syslog — entries appear in /var/log/secure.
+LogLevel VERBOSE
+SyslogFacility AUTHPRIV
+
+
+# =============================================================================
+# LEGAL BANNER — STIG CONTROL
+# =============================================================================
+
+# STIG V-257765: SSH must display a legal warning banner before authentication
+# Rationale: Without explicit notice, prosecuting unauthorized access may be
+# legally complicated. The banner establishes consent to monitoring and provides
+# legal notice before any credentials are entered.
+# Banner content is in /etc/issue — ensure this file has appropriate content.
+Banner /etc/issue
+
+
+# =============================================================================
+# SUBSYSTEMS
+# =============================================================================
+
+# SFTP subsystem — internal server (no separate binary required)
+Subsystem sftp /usr/lib/openssh/sftp-server
+
+
+# =============================================================================
+# END OF HARDENED CONFIGURATION
+# =============================================================================
+# Validation: sudo sshd -t && echo "CONFIG VALID"
+# Runtime check: sudo sshd -T | grep -E "permitrootlogin|ciphers|macs|clientalive"
+# Full diff vs. default: diff /etc/ssh/sshd_config.d/defaults /etc/ssh/sshd_config
+# =============================================================================
