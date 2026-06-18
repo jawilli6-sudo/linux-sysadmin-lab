@@ -9,7 +9,7 @@
 
 This lab hardens the OpenSSH daemon (`sshd`) on a baseline RHEL 9 system to meet
 DISA STIG compliance requirements. The project begins with zero prior configuration —
-a default post-install SSH state — and applies systematic hardening aligned to 14
+a default post-install SSH state — and applies systematic hardening aligned to 13
 STIG controls covering authentication, encryption, session management, and logging.
 
 A before/after compliance delta is documented using `sshd -T` output comparison
