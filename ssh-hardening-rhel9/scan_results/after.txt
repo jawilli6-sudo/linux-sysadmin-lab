@@ -1,0 +1,125 @@
+=== SSH HARDENING LAB — POST-HARDENING VERIFICATION ===
+Date: Tue Jun 16 2026
+Hostname: LoisHomeOffice
+Hardening method: DISA STIG controls applied via sed + drop-in config files
+
+=== FULL SSHD RUNTIME CONFIGURATION (POST-HARDENING) ===
+port 22
+addressfamily any
+listenaddress [::]:22
+listenaddress 0.0.0.0:22
+usepam yes
+logingracetime 60
+x11displayoffset 10
+x11maxdisplays 1000
+maxauthtries 3
+maxsessions 10
+clientaliveinterval 600
+clientalivecountmax 0
+requiredrsasize 2048
+streamlocalbindmask 0177
+permitrootlogin no
+ignorerhosts yes
+ignoreuserknownhosts no
+hostbasedauthentication no
+hostbasedusesnamefrompacketonly no
+pubkeyauthentication yes
+kerberosauthentication no
+kerberosorlocalpasswd yes
+kerberosticketcleanup yes
+kerberosuniqueccache no
+kerberosusekuserok yes
+gssapienablek5users no
+gssapiauthentication yes
+gssapicleanupcredentials no
+gssapikeyexchange no
+gssapistrictacceptorcheck yes
+gssapistorecredentialsonrekey no
+gssapikexalgorithms gss-curve25519-sha256-,gss-nistp256-sha256-,gss-group14-sha256-,gss-group16-sha512-
+passwordauthentication yes
+kbdinteractiveauthentication no
+printmotd no
+printlastlog yes
+x11forwarding no
+x11uselocalhost yes
+permittty yes
+permituserrc yes
+strictmodes yes
+tcpkeepalive yes
+permitemptypasswords no
+compression yes
+gatewayports no
+usedns no
+allowtcpforwarding yes
+allowagentforwarding yes
+disableforwarding no
+allowstreamlocalforwarding yes
+streamlocalbindunlink no
+fingerprinthash SHA256
+exposeauthinfo no
+pidfile /var/run/sshd.pid
+modulifile /etc/ssh/moduli
+xauthlocation /usr/bin/xauth
+ciphers aes128-ctr,aes192-ctr,aes256-ctr,aes128-gcm@openssh.com,aes256-gcm@openssh.com
+macs hmac-sha2-256,hmac-sha2-512,hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com
+banner /etc/issue
+forcecommand none
+chrootdirectory none
+trustedusercakeys none
+revokedkeys none
+securitykeyprovider internal
+authorizedprincipalsfile none
+versionaddendum none
+authorizedkeyscommand none
+authorizedkeyscommanduser none
+authorizedprincipalscommand none
+authorizedprincipalscommanduser none
+hostkeyagent none
+kexalgorithms ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256,diffie-hellman-group14-sha256,diffie-hellman-group16-sha512
+loglevel VERBOSE
+syslogfacility AUTHPRIV
+authorizedkeysfile .ssh/authorized_keys
+hostkey /etc/ssh/ssh_host_rsa_key
+hostkey /etc/ssh/ssh_host_ecdsa_key
+hostkey /etc/ssh/ssh_host_ed25519_key
+authenticationmethods any
+subsystem sftp /usr/libexec/openssh/sftp-server
+maxstartups 10:30:100
+persourcemaxstartups none
+persourcenetblocksize 32:128
+permittunnel no
+ipqos af21 cs1
+rekeylimit 0 0
+permitopen any
+permitlisten any
+permituserenvironment no
+pubkeyauthoptions none
+
+=== INDIVIDUAL CONTROL VERIFICATION ===
+[V-257778] permitrootlogin no          [PASS]
+[V-257757] permitemptypasswords no     [PASS]
+[V-257758] ciphers aes128-ctr,aes192-ctr,aes256-ctr,aes128-gcm@openssh.com,aes256-gcm@openssh.com  [PASS]
+[V-257759] macs hmac-sha2-256,hmac-sha2-512,hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com  [PASS]
+[V-257760] kexalgorithms ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,...  [PASS]
+[V-257761] clientaliveinterval 600     [PASS]
+[V-257762] clientalivecountmax 0       [PASS]
+[V-257763] logingracetime 60           [PASS]
+[V-257764] maxauthtries 3              [PASS]
+[V-257765] banner /etc/issue           [PASS]
+[V-257766] permituserenvironment no    [PASS]
+[V-257767] x11forwarding no            [PASS]
+[V-257769] loglevel VERBOSE            [PASS]
+
+=== CONTROLS SUMMARY ===
+Total controls implemented: 13
+Passed: 13
+Failed: 0
+
+=== TECHNICAL NOTE: RHEL 9 CRYPTO POLICY OVERRIDE ===
+RHEL 9 uses a system-wide crypto policy loaded via /etc/ssh/sshd_config.d/50-redhat.conf.
+This file overrides cipher/MAC/KEX settings written directly to /etc/ssh/sshd_config.
+To enforce STIG-required algorithms, a drop-in file was created at:
+  /etc/ssh/sshd_config.d/01-stig-crypto.conf
+Files in sshd_config.d/ load alphabetically. The 01- prefix ensures STIG settings
+load before and take precedence over the 50-redhat.conf system defaults.
+This is the correct approach for STIG hardening on RHEL 9 systems.
