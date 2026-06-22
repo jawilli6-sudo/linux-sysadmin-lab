@@ -1,0 +1,57 @@
+=== USER & GROUP MANAGEMENT LAB — BASELINE CAPTURE ===
+Date: Mon Jun 22 2026
+Hostname: LoisHomeOffice
+OS: Red Hat Enterprise Linux release 9.6 (Plow)
+
+=== LOGIN.DEFS BEFORE ===
+PASS_MAX_DAYS   99999
+PASS_MIN_DAYS   0
+PASS_WARN_AGE   7
+
+=== DEFAULT USERADD BEFORE ===
+# useradd defaults file
+GROUP=100
+HOME=/home
+INACTIVE=-1
+EXPIRE=
+SHELL=/bin/bash
+SKEL=/etc/skel
+CREATE_MAIL_SPOOL=yes
+
+=== ACCOUNT AGING BEFORE ===
+--- jbeko ---
+Last password change                : never
+Password expires                    : never
+Password inactive                   : never
+Account expires                     : never
+Minimum number of days between password change  : 0
+Maximum number of days between password change  : 99999
+Number of days of warning before password expires: 7
+
+=== STIG FINDINGS AT BASELINE ===
+PASS_MAX_DAYS 99999    [FAIL - V-257901: must be <= 60]
+PASS_MIN_DAYS 0        [FAIL - V-257902: must be >= 1]
+PASS_WARN_AGE 7        [PASS - V-257903: meets 7-day requirement]
+INACTIVE=-1            [FAIL - V-257904: must be <= 35]
+jbeko max age: never   [FAIL - V-257901: account never expires]
+jbeko min age: 0       [FAIL - V-257902: no minimum age enforced]
+jbeko inactive: never  [FAIL - V-257904: no inactivity lockout]
+UID 0: root only       [PASS - V-257906]
+Duplicate UIDs: none   [PASS - V-257907]
+Duplicate GIDs: none   [PASS - V-257908]
+
+=== TECHNICAL NOTE ===
+jbeko's "Last password change" was set to "never" (epoch day 0).
+When PASS_MAX_DAYS 60 was applied, PAM calculated the password had
+expired 60 days after epoch (January 1, 1970) — decades ago.
+This locked sudo access immediately after chage was applied.
+
+Resolution: Root login via VirtualBox console used to run:
+  chage -d $(date +%Y-%m-%d) jbeko
+  passwd jbeko
+This reset the last change date to today before re-applying aging controls.
+
+This is a known operational gotcha when applying password aging to
+existing accounts where the last change date was never initialized.
+Senior sysadmins always check chage -l before applying maxdays to
+accounts with "Last password change: never."
