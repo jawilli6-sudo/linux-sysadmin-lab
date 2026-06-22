@@ -1,0 +1,71 @@
+=== USER & GROUP MANAGEMENT LAB — POST-HARDENING VERIFICATION ===
+Date: Mon Jun 22 01:12:09 PM PDT 2026
+Hostname: LoisHomeOffice.attlocal.net
+OS: Red Hat Enterprise Linux release 9.6 (Plow)
+
+=== SYSTEM PASSWORD POLICY ===
+PASS_MAX_DAYS   60
+PASS_MIN_DAYS   1
+PASS_WARN_AGE   7
+
+=== DEFAULT USERADD ===
+INACTIVE=35
+
+=== ACCOUNT AGING — jbeko ===
+Last password change                                    : Jun 22, 2026
+Password expires                                        : Aug 21, 2026
+Password inactive                                       : Sep 25, 2026
+Account expires                                         : never
+Minimum number of days between password change          : 1
+Maximum number of days between password change          : 60
+Number of days of warning before password expires       : 7
+
+=== UID 0 CHECK ===
+root
+
+=== DUPLICATE UID CHECK ===
+none found
+
+=== DUPLICATE GID CHECK ===
+none found
+
+=== CONTROL VERIFICATION SUMMARY ===
+[PASS] V-257901: PASS_MAX_DAYS = 60 (<= 60 required)
+[PASS] V-257902: PASS_MIN_DAYS = 1 (>= 1 required)
+[PASS] V-257903: PASS_WARN_AGE = 7 (>= 7 required)
+[PASS] V-257904: INACTIVE = 35 (<= 35 required)
+[PASS] V-257901: jbeko password expires Aug 21, 2026 (60 days)
+[PASS] V-257902: jbeko min age = 1 day
+[PASS] V-257904: jbeko inactive lockout = Sep 25, 2026 (35 days post-expiry)
+[PASS] V-257906: Only root has UID 0
+[PASS] V-257907: No duplicate UIDs
+[PASS] V-257908: No duplicate GIDs
+
+Total controls verified: 10
+Passed: 10
+Failed: 0
+
+RESULT: COMPLIANT
+
+=== TECHNICAL NOTES ===
+
+1. PASS_MIN_LEN not present in /etc/login.defs on RHEL 9
+   RHEL 9 enforces password complexity and minimum length through
+   PAM/pwquality (/etc/security/pwquality.conf) rather than login.defs.
+   The minlen parameter in pwquality.conf controls minimum length.
+   This is a RHEL 9 architectural difference from earlier RHEL versions.
+
+2. login.defs affects NEW accounts only
+   Changes to /etc/login.defs apply to accounts created after the change.
+   Existing accounts require per-account remediation via chage.
+   This is why audit_accounts.sh checks both system defaults AND
+   per-account chage values — system-level compliance does not
+   guarantee per-account compliance.
+
+3. Epoch date gotcha on existing accounts
+   Applying maxdays to accounts with "Last password change: never"
+   causes immediate password expiration (60 days from epoch = 1970).
+   Always run chage -l before applying aging to existing accounts.
+   Fix: chage -d $(date +%Y-%m-%d) <username> before applying maxdays.
+
+Generated: Mon Jun 22 2026
