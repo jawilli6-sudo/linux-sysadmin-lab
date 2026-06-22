@@ -18,7 +18,7 @@ Exam Date: July 30, 2026
 | Project | Status | STIG Controls |
 |---|---|---|
 | [SSH Hardening (RHEL 9)](./ssh-hardening-rhel9) | ✅ Complete | 13 DISA STIG controls |
-| User & Group Management Automation | 🔜 Coming Next | RHEL-09-020000 series |
+| [User & Group Management Automation](./user-group-management) | ✅ Complete | 10 DISA STIG controls |
 | SELinux Enforcing Mode Configuration | 🔜 Planned | RHEL-09-010001 series |
 | Storage & LVM Management | 🔜 Planned | RHEL-09-231010 |
 | System Logging & Log Analysis | 🔜 Planned | RHEL-09-010070 series |
